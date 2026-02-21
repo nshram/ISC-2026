@@ -1,4 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Sheet Viewer</title>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<style>
+body { font-family: Arial; margin: 20px; }
+
+.table-container {
+    overflow: auto;
+    max-height: 80vh;
+    border: 1px solid #ccc;
+}
+
+table {
+    border-collapse: collapse;
+    width: max-content;
+}
+
+th, td {
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+    white-space: nowrap;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Sheet Viewer</h2>
+<div id="tableArea"></div>
+
 <script>
+
+/* ---- YOUR SCRIPT STARTS HERE ---- */
 
 const sheets = {
     Cat1: {
@@ -24,7 +61,6 @@ const sheets = {
 let fullData = [];
 let configGlobal;
 let hiddenIndexes = [];
-let frozenIndexes = [];
 
 function colLetterToIndex(letter) {
     let result = 0;
@@ -38,7 +74,6 @@ function colLetterToIndex(letter) {
 function showTab(tab) {
     configGlobal = sheets[tab];
     hiddenIndexes = configGlobal.hiddenCols.map(c => colLetterToIndex(c));
-    frozenIndexes = configGlobal.frozenCols.map(c => colLetterToIndex(c));
 
     Papa.parse(configGlobal.url, {
         download: true,
@@ -52,9 +87,6 @@ function showTab(tab) {
 function renderTable() {
     const container = document.getElementById("tableArea");
     container.innerHTML = "";
-
-    const tableContainer = document.createElement("div");
-    tableContainer.className = "table-container";
 
     const table = document.createElement("table");
 
@@ -89,8 +121,7 @@ function renderTable() {
     const tbody = document.createElement("tbody");
     table.appendChild(tbody);
 
-    tableContainer.appendChild(table);
-    container.appendChild(tableContainer);
+    container.appendChild(table);
 
     applyFilters();
 }
@@ -109,11 +140,10 @@ function applyFilters() {
     const AA = colLetterToIndex("AA");
 
     for (let r = configGlobal.frozenRows; r < fullData.length; r++) {
-
         let row = [...fullData[r]];
         let show = true;
 
-        inputs.forEach((input, index) => {
+        inputs.forEach(input => {
             const colIndex = input.dataset.col;
             if (!input.value) return;
             if (!row[colIndex] || !row[colIndex].toLowerCase().includes(input.value.toLowerCase())) {
@@ -123,48 +153,12 @@ function applyFilters() {
 
         if (show) {
             counter++;
-            row[AA] = counter; // Recalculate Hlp1
+            row[AA] = counter;
             visibleRows.push(row);
-        } else {
-            row[AA] = 0;
         }
     }
 
-    // Recalculate Filtered Rank (Z)
-    visibleRows.forEach((row, idx) => {
-
-        let rank = row[AA];
-
-        if (!rank) {
-            row[Z] = "";
-            return;
-        }
-
-        const prev = visibleRows.find(r => r[AA] == rank - 1);
-        const next = visibleRows.find(r => r[AA] == rank + 1);
-
-        if (prev && row[W] === prev[W] && row[X] === prev[X]) {
-            row[Z] = prev[Z];
-            return;
-        }
-
-        if (next && row[W] === next[W] && row[X] === next[X]) {
-
-            let max = Math.max(
-                ...visibleRows
-                    .filter(r => r[W] === row[W] && r[X] === row[X])
-                    .map(r => r[AA])
-            );
-
-            row[Z] = rank + "-" + max;
-            return;
-        }
-
-        row[Z] = rank;
-    });
-
-    // Render
-    visibleRows.forEach(row => {
+    visibleRows.forEach((row) => {
         const tr = document.createElement("tr");
         row.forEach((cell, i) => {
             if (hiddenIndexes.includes(i)) return;
@@ -174,7 +168,7 @@ function applyFilters() {
         });
         tbody.appendChild(tr);
     });
-    
+
     autoSizeColumns();
 }
 
@@ -183,39 +177,27 @@ function autoSizeColumns() {
     if (!table) return;
 
     const rows = table.querySelectorAll("tr");
-    if (rows.length === 0) return;
-
     const colCount = rows[0].children.length;
 
     for (let col = 0; col < colCount; col++) {
         let maxWidth = 0;
-
         rows.forEach(row => {
             const cell = row.children[col];
-            if (!cell || row.style.display === "none") return;
-
-            const clone = cell.cloneNode(true);
-            clone.style.position = "absolute";
-            clone.style.visibility = "hidden";
-            clone.style.whiteSpace = "nowrap";
-            document.body.appendChild(clone);
-
-            maxWidth = Math.max(maxWidth, clone.offsetWidth);
-
-            document.body.removeChild(clone);
+            if (!cell) return;
+            maxWidth = Math.max(maxWidth, cell.scrollWidth);
         });
-
-        const finalWidth = maxWidth + 16; // padding buffer
 
         rows.forEach(row => {
             if (row.children[col]) {
-                row.children[col].style.width = finalWidth + "px";
+                row.children[col].style.width = (maxWidth + 16) + "px";
             }
         });
     }
 }
 
-
 showTab("Cat1");
 
 </script>
+
+</body>
+</html>
