@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Read-Only Sheet Viewer</title>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+.tabs button {
+    padding: 8px 15px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+.tabs button.active {
+    background: #007bff;
+    color: white;
+}
+
+.table-container {
+    overflow: auto;
+    max-height: 75vh;
+    border: 1px solid #ccc;
+}
+
+table {
+    border-collapse: collapse;
+    width: max-content;
+}
+
+th, td {
+    border: 1px solid #ccc;
+    padding: 4px 8px;
+    white-space: nowrap;
+}
+
+thead th {
+    position: sticky;
+    background: #f5f5f5;
+    z-index: 3;
+}
+
+.frozen-col {
+    position: sticky;
+    background: #f9f9f9;
+    z-index: 2;
+}
+
+.filter-row input {
+    width: 95%;
+    box-sizing: border-box;
+}
+</style>
+</head>
+<body>
+
+<h2>Sheet Viewer</h2>
+
+<div class="tabs">
+    <button onclick="showTab('Cat1')" class="active">Cat1</button>
+    <button onclick="showTab('Cat2')">Cat2</button>
+    <button onclick="showTab('Cat3')">Cat3</button>
+</div>
+
+<div id="tableArea"></div>
+
+<script>
+
+// ===== CONFIGURATION =====
+
+const sheets = {
+    Cat1: {
+        url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeBugtsvSMiAlwoZwg_QVXDFN0lMvKAj0bLHLEeyk8KCihgezOPw-1Mh0m7I-48fJvRpKWi9UGwXyc/pub?gid=1706593238&single=true&output=csv",
+        frozenRows: 2,
+        frozenCols: ["A","B"],
+        hiddenCols: ["AA"]
+    },
+    Cat2: {
+        url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeBugtsvSMiAlwoZwg_QVXDFN0lMvKAj0bLHLEeyk8KCihgezOPw-1Mh0m7I-48fJvRpKWi9UGwXyc/pub?gid=1880374698&single=true&output=csv",
+        frozenRows: 2,
+        frozenCols: ["B","C"],
+        hiddenCols: ["A","AA"]
+    },
+    Cat3: {
+        url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeBugtsvSMiAlwoZwg_QVXDFN0lMvKAj0bLHLEeyk8KCihgezOPw-1Mh0m7I-48fJvRpKWi9UGwXyc/pub?gid=482846150&single=true&output=csv",
+        frozenRows: 2,
+        frozenCols: ["J","K"],
+        hiddenCols: ["A","B","C","D","E","F","G","H","I","AA"]
+    }
+};
+
+let currentTab = "Cat1";
+
+function colLetterToIndex(letter) {
+    let result = 0;
+    for (let i = 0; i < letter.length; i++) {
+        result *= 26;
+        result += letter.charCodeAt(i) - 64;
+    }
+    return result - 1;
+}
+
+function showTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+    event.target.classList.add("active");
+    loadSheet(tab);
+}
+
+function loadSheet(name) {
+    const config = sheets[name];
+    Papa.parse(config.url, {
+        download: true,
+        complete: function(results) {
+            renderTable(results.data, config);
+        }
+    });
+}
+
+function renderTable(data, config) {
+    const container = document.getElementById("tableArea");
+    container.innerHTML = "";
+
+    const hiddenIndexes = config.hiddenCols.map(c => colLetterToIndex(c));
+    const frozenIndexes = config.frozenCols.map(c => colLetterToIndex(c));
+
+    const tableContainer = document.createElement("div");
+    tableContainer.className = "table-container";
+
+    const table = document.createElement("table");
+
+    const thead = document.createElement("thead");
+
+    // Frozen header rows
+    for (let r = 0; r < config.frozenRows; r++) {
+        const tr = document.createElement("tr");
+        tr.style.position = "sticky";
+        tr.style.top = (r * 30) + "px";
+        tr.style.zIndex = 4;
+
+        data[r].forEach((cell, i) => {
+            if (hiddenIndexes.includes(i)) return;
+            const th = document.createElement("th");
+            th.textContent = cell;
+
+            if (frozenIndexes.includes(i)) {
+                th.classList.add("frozen-col");
+                th.style.left = (frozenIndexes.indexOf(i) * 120) + "px";
+            }
+
+            tr.appendChild(th);
+        });
+
+        thead.appendChild(tr);
+    }
+
+    // Filter row
+    const filterRow = document.createElement("tr");
+    filterRow.className = "filter-row";
+
+    data[0].forEach((_, i) => {
+        if (hiddenIndexes.includes(i)) return;
+        const th = document.createElement("th");
+        const input = document.createElement("input");
+        input.dataset.col = i;
+        input.oninput = applyFilters;
+        th.appendChild(input);
+
+        if (frozenIndexes.includes(i)) {
+            th.classList.add("frozen-col");
+            th.style.left = (frozenIndexes.indexOf(i) * 120) + "px";
+        }
+
+        filterRow.appendChild(th);
+    });
+
+    thead.appendChild(filterRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+
+    for (let r = config.frozenRows; r < data.length; r++) {
+        const tr = document.createElement("tr");
+
+        data[r].forEach((cell, i) => {
+            if (hiddenIndexes.includes(i)) return;
+            const td = document.createElement("td");
+            td.textContent = cell;
+
+            if (frozenIndexes.includes(i)) {
+                td.classList.add("frozen-col");
+                td.style.left = (frozenIndexes.indexOf(i) * 120) + "px";
+            }
+
+            tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+    }
+
+    table.appendChild(tbody);
+    tableContainer.appendChild(table);
+    container.appendChild(tableContainer);
+}
+
+function applyFilters() {
+    const inputs = document.querySelectorAll(".filter-row input");
+    const rows = document.querySelectorAll("tbody tr");
+
+    rows.forEach(row => {
+        let show = true;
+
+        inputs.forEach(input => {
+            const colIndex = input.dataset.col;
+            const value = input.value.toLowerCase();
+            if (!value) return;
+
+            const cell = row.children[Array.from(inputs).indexOf(input)];
+            if (!cell.textContent.toLowerCase().includes(value)) {
+                show = false;
+            }
+        });
+
+        row.style.display = show ? "" : "none";
+    });
+}
+
+loadSheet("Cat1");
+
+</script>
+</body>
+</html>
