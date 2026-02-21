@@ -1,78 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Read-Only Sheet Viewer</title>
-
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
-<style>
-body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-}
-
-.tabs button {
-    padding: 8px 15px;
-    margin-right: 5px;
-    cursor: pointer;
-}
-
-.tabs button.active {
-    background: #007bff;
-    color: white;
-}
-
-.table-container {
-    overflow: auto;
-    max-height: 75vh;
-    border: 1px solid #ccc;
-}
-
-table {
-    border-collapse: collapse;
-    width: max-content;
-}
-
-th, td {
-    border: 1px solid #ccc;
-    padding: 4px 8px;
-    white-space: nowrap;
-}
-
-thead th {
-    position: sticky;
-    background: #f5f5f5;
-    z-index: 3;
-}
-
-.frozen-col {
-    position: sticky;
-    background: #f9f9f9;
-    z-index: 2;
-}
-
-.filter-row input {
-    width: 95%;
-    box-sizing: border-box;
-}
-</style>
-</head>
-<body>
-
-<h2>Sheet Viewer</h2>
-
-<div class="tabs">
-    <button onclick="showTab('Cat1')" class="active">Cat1</button>
-    <button onclick="showTab('Cat2')">Cat2</button>
-    <button onclick="showTab('Cat3')">Cat3</button>
-</div>
-
-<div id="tableArea"></div>
-
 <script>
-
-// ===== CONFIGURATION =====
 
 const sheets = {
     Cat1: {
@@ -95,7 +21,10 @@ const sheets = {
     }
 };
 
-let currentTab = "Cat1";
+let fullData = [];
+let configGlobal;
+let hiddenIndexes = [];
+let frozenIndexes = [];
 
 function colLetterToIndex(letter) {
     let result = 0;
@@ -107,28 +36,22 @@ function colLetterToIndex(letter) {
 }
 
 function showTab(tab) {
-    currentTab = tab;
-    document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
-    event.target.classList.add("active");
-    loadSheet(tab);
-}
+    configGlobal = sheets[tab];
+    hiddenIndexes = configGlobal.hiddenCols.map(c => colLetterToIndex(c));
+    frozenIndexes = configGlobal.frozenCols.map(c => colLetterToIndex(c));
 
-function loadSheet(name) {
-    const config = sheets[name];
-    Papa.parse(config.url, {
+    Papa.parse(configGlobal.url, {
         download: true,
         complete: function(results) {
-            renderTable(results.data, config);
+            fullData = results.data;
+            renderTable();
         }
     });
 }
 
-function renderTable(data, config) {
+function renderTable() {
     const container = document.getElementById("tableArea");
     container.innerHTML = "";
-
-    const hiddenIndexes = config.hiddenCols.map(c => colLetterToIndex(c));
-    const frozenIndexes = config.frozenCols.map(c => colLetterToIndex(c));
 
     const tableContainer = document.createElement("div");
     tableContainer.className = "table-container";
@@ -137,46 +60,26 @@ function renderTable(data, config) {
 
     const thead = document.createElement("thead");
 
-    // Frozen header rows
-    for (let r = 0; r < config.frozenRows; r++) {
+    for (let r = 0; r < configGlobal.frozenRows; r++) {
         const tr = document.createElement("tr");
-        tr.style.position = "sticky";
-        tr.style.top = (r * 30) + "px";
-        tr.style.zIndex = 4;
-
-        data[r].forEach((cell, i) => {
+        fullData[r].forEach((cell, i) => {
             if (hiddenIndexes.includes(i)) return;
             const th = document.createElement("th");
             th.textContent = cell;
-
-            if (frozenIndexes.includes(i)) {
-                th.classList.add("frozen-col");
-                th.style.left = (frozenIndexes.indexOf(i) * 120) + "px";
-            }
-
             tr.appendChild(th);
         });
-
         thead.appendChild(tr);
     }
 
-    // Filter row
     const filterRow = document.createElement("tr");
-    filterRow.className = "filter-row";
 
-    data[0].forEach((_, i) => {
+    fullData[0].forEach((_, i) => {
         if (hiddenIndexes.includes(i)) return;
         const th = document.createElement("th");
         const input = document.createElement("input");
         input.dataset.col = i;
         input.oninput = applyFilters;
         th.appendChild(input);
-
-        if (frozenIndexes.includes(i)) {
-            th.classList.add("frozen-col");
-            th.style.left = (frozenIndexes.indexOf(i) * 120) + "px";
-        }
-
         filterRow.appendChild(th);
     });
 
@@ -184,55 +87,135 @@ function renderTable(data, config) {
     table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
-
-    for (let r = config.frozenRows; r < data.length; r++) {
-        const tr = document.createElement("tr");
-
-        data[r].forEach((cell, i) => {
-            if (hiddenIndexes.includes(i)) return;
-            const td = document.createElement("td");
-            td.textContent = cell;
-
-            if (frozenIndexes.includes(i)) {
-                td.classList.add("frozen-col");
-                td.style.left = (frozenIndexes.indexOf(i) * 120) + "px";
-            }
-
-            tr.appendChild(td);
-        });
-
-        tbody.appendChild(tr);
-    }
-
     table.appendChild(tbody);
+
     tableContainer.appendChild(table);
     container.appendChild(tableContainer);
+
+    applyFilters();
 }
 
 function applyFilters() {
-    const inputs = document.querySelectorAll(".filter-row input");
-    const rows = document.querySelectorAll("tbody tr");
+    const inputs = document.querySelectorAll("thead input");
+    const tbody = document.querySelector("tbody");
+    tbody.innerHTML = "";
 
-    rows.forEach(row => {
+    let visibleRows = [];
+    let counter = 0;
+
+    const W = colLetterToIndex("W");
+    const X = colLetterToIndex("X");
+    const Z = colLetterToIndex("Z");
+    const AA = colLetterToIndex("AA");
+
+    for (let r = configGlobal.frozenRows; r < fullData.length; r++) {
+
+        let row = [...fullData[r]];
         let show = true;
 
-        inputs.forEach(input => {
+        inputs.forEach((input, index) => {
             const colIndex = input.dataset.col;
-            const value = input.value.toLowerCase();
-            if (!value) return;
-
-            const cell = row.children[Array.from(inputs).indexOf(input)];
-            if (!cell.textContent.toLowerCase().includes(value)) {
+            if (!input.value) return;
+            if (!row[colIndex] || !row[colIndex].toLowerCase().includes(input.value.toLowerCase())) {
                 show = false;
             }
         });
 
-        row.style.display = show ? "" : "none";
+        if (show) {
+            counter++;
+            row[AA] = counter; // Recalculate Hlp1
+            visibleRows.push(row);
+        } else {
+            row[AA] = 0;
+        }
+    }
+
+    // Recalculate Filtered Rank (Z)
+    visibleRows.forEach((row, idx) => {
+
+        let rank = row[AA];
+
+        if (!rank) {
+            row[Z] = "";
+            return;
+        }
+
+        const prev = visibleRows.find(r => r[AA] == rank - 1);
+        const next = visibleRows.find(r => r[AA] == rank + 1);
+
+        if (prev && row[W] === prev[W] && row[X] === prev[X]) {
+            row[Z] = prev[Z];
+            return;
+        }
+
+        if (next && row[W] === next[W] && row[X] === next[X]) {
+
+            let max = Math.max(
+                ...visibleRows
+                    .filter(r => r[W] === row[W] && r[X] === row[X])
+                    .map(r => r[AA])
+            );
+
+            row[Z] = rank + "-" + max;
+            return;
+        }
+
+        row[Z] = rank;
     });
+
+    // Render
+    visibleRows.forEach(row => {
+        const tr = document.createElement("tr");
+        row.forEach((cell, i) => {
+            if (hiddenIndexes.includes(i)) return;
+            const td = document.createElement("td");
+            td.textContent = cell;
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+    
+    autoSizeColumns();
 }
 
-loadSheet("Cat1");
+function autoSizeColumns() {
+    const table = document.querySelector("table");
+    if (!table) return;
+
+    const rows = table.querySelectorAll("tr");
+    if (rows.length === 0) return;
+
+    const colCount = rows[0].children.length;
+
+    for (let col = 0; col < colCount; col++) {
+        let maxWidth = 0;
+
+        rows.forEach(row => {
+            const cell = row.children[col];
+            if (!cell || row.style.display === "none") return;
+
+            const clone = cell.cloneNode(true);
+            clone.style.position = "absolute";
+            clone.style.visibility = "hidden";
+            clone.style.whiteSpace = "nowrap";
+            document.body.appendChild(clone);
+
+            maxWidth = Math.max(maxWidth, clone.offsetWidth);
+
+            document.body.removeChild(clone);
+        });
+
+        const finalWidth = maxWidth + 16; // padding buffer
+
+        rows.forEach(row => {
+            if (row.children[col]) {
+                row.children[col].style.width = finalWidth + "px";
+            }
+        });
+    }
+}
+
+
+showTab("Cat1");
 
 </script>
-</body>
-</html>
