@@ -1,4 +1,5 @@
 A summary of the 22nd International Solving Contest (ISC) held worldwise on 25-Jan-2026.
+It can be viewed at https://nshram.github.io/ISC-2026/
 
 This webpage shows the results of the 3 categories in separate tabs.
 In each tab, the rows can be filtered based on values in one or more columns.
