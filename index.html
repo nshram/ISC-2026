@@ -31,6 +31,11 @@ th, td {
 <body>
 
 <h2>Sheet Viewer</h2>
+<div style="margin-bottom:15px;">
+    <button onclick="switchTab('Cat1')">Cat1</button>
+    <button onclick="switchTab('Cat2')">Cat2</button>
+    <button onclick="switchTab('Cat3')">Cat3</button>
+</div>
 <div id="tableArea"></div>
 
 <script>
@@ -227,6 +232,10 @@ function autoSizeColumns() {
     }
 }
 
+function switchTab(tabName) {
+    showTab(tabName);
+}
+    
 showTab("Cat1");
 
 </script>
