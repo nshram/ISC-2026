@@ -314,20 +314,27 @@ function applyFrozenColumns(table) {
 
         rows.forEach((row, rowIndex) => {
 
-            const cell = row.children[colIndex];
-            if (!cell) return;
+    const cell = row.children[colIndex];
+    if (!cell) return;
 
-            cell.style.position = "sticky";
-            cell.style.left = leftOffset + "px";
-            cell.style.background = "white";
+    cell.style.position = "sticky";
+    cell.style.left = leftOffset + "px";
+    cell.style.background = "white";
 
-            // Layering logic
-            if (rowIndex < configGlobal.frozenRows) {
-                cell.style.zIndex = 6;   // top-left intersection highest
-            } else {
-                cell.style.zIndex = 5;
-            }
-        });
+    const sheetFrozenCount = configGlobal.frozenRows || 0;
+    const filterRow = table.querySelector(".filter-row");
+    const filterIndex = rows.indexOf(filterRow);
+
+    // If cell is in frozen sheet row OR filter row
+    if (rowIndex < sheetFrozenCount || rowIndex === filterIndex) {
+
+        // Preserve top offset already applied by applyFrozenRows
+        cell.style.zIndex = 7;
+
+    } else {
+        cell.style.zIndex = 5;
+    }
+});
     });
 }
 
