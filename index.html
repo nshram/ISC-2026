@@ -32,19 +32,6 @@ th, td {
     background: white;
 }
 
-thead th {
-    background: #f2f2f2;
-    position: sticky;
-    top: 0;
-    z-index: 3;
-}
-
-.filter-row th {
-    position: sticky;
-    top: 32px;  /* height of header row */
-    background: #fff;
-    z-index: 4;
-}
 
 input {
     width: 95%;
@@ -235,9 +222,16 @@ function applyFilters() {
         tbody.appendChild(tr);
     });
 
-    setTimeout(autoSizeColumns, 0);
+    setTimeout(() => {
+    const table = document.querySelector("table");
+    if (!table) return;
+
     autoSizeColumns();
-    applyFrozenColumns(document.querySelector("table"));
+    applyFrozenRows(table);
+    applyFrozenColumns(table);
+
+}, 0);
+    
 }
 
 function autoSizeColumns() {
@@ -299,30 +293,70 @@ function applyFrozenColumns(table) {
     const frozenCols = configGlobal.frozenCols || [];
     if (!frozenCols.length) return;
 
-    const rows = table.querySelectorAll("tr");
+    const rows = Array.from(table.querySelectorAll("tr"));
 
-    frozenCols.forEach((colLetter, index) => {
+    // Calculate cumulative column widths
+    const colWidths = [];
+    const firstRowCells = rows[0].children;
+
+    for (let i = 0; i < firstRowCells.length; i++) {
+        colWidths.push(firstRowCells[i].offsetWidth);
+    }
+
+    frozenCols.forEach((colLetter) => {
 
         const colIndex = colLetterToIndex(colLetter);
 
-        rows.forEach(row => {
+        let leftOffset = 0;
+        for (let i = 0; i < colIndex; i++) {
+            leftOffset += colWidths[i];
+        }
 
-            const visibleCells = Array.from(row.children);
-            const actualCell = visibleCells.find(cell => {
-                return cell.cellIndex === colIndex;
-            });
+        rows.forEach((row, rowIndex) => {
 
-            if (!actualCell) return;
+            const cell = row.children[colIndex];
+            if (!cell) return;
 
-            actualCell.style.position = "sticky";
-            actualCell.style.left = (index * 120) + "px";  // adjusted after resize
-            actualCell.style.background = "#fff";
-            actualCell.style.zIndex = 5;
+            cell.style.position = "sticky";
+            cell.style.left = leftOffset + "px";
+            cell.style.background = "white";
+
+            // Layering logic
+            if (rowIndex < configGlobal.frozenRows) {
+                cell.style.zIndex = 6;   // top-left intersection highest
+            } else {
+                cell.style.zIndex = 5;
+            }
         });
     });
 }
 
+function applyFrozenRows(table) {
 
+    const frozenCount = configGlobal.frozenRows || 0;
+    if (!frozenCount) return;
+
+    const rows = Array.from(table.querySelectorAll("tr"));
+
+    let cumulativeTop = 0;
+
+    for (let i = 0; i < frozenCount; i++) {
+
+        const row = rows[i];
+        const height = row.offsetHeight;
+
+        Array.from(row.children).forEach(cell => {
+
+            cell.style.position = "sticky";
+            cell.style.top = cumulativeTop + "px";
+            cell.style.background = "white";
+            cell.style.zIndex = 4;
+        });
+
+        cumulativeTop += height;
+    }
+}
+    
 showTab("Cat1");
 
 </script>
