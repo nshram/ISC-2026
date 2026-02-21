@@ -21,7 +21,7 @@ body {
 
 table {
     border-collapse: collapse;
-    width: max-content;
+    width: auto;
     table-layout: auto;
 }
 
@@ -29,6 +29,7 @@ th, td {
     border: 1px solid #ccc;
     padding: 4px 8px;
     white-space: nowrap;
+    background: white;
 }
 
 thead th {
@@ -69,16 +70,19 @@ const sheets = {
     Cat1: {
         url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeBugtsvSMiAlwoZwg_QVXDFN0lMvKAj0bLHLEeyk8KCihgezOPw-1Mh0m7I-48fJvRpKWi9UGwXyc/pub?gid=1706593238&single=true&output=csv",
         frozenRows: 2,
+        frozenCols: ["A","B"],
         hiddenCols: ["AA"]
     },
     Cat2: {
         url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeBugtsvSMiAlwoZwg_QVXDFN0lMvKAj0bLHLEeyk8KCihgezOPw-1Mh0m7I-48fJvRpKWi9UGwXyc/pub?gid=1880374698&single=true&output=csv",
         frozenRows: 2,
-        hiddenCols: ["A","AA"]
+        frozenCols: ["B","C"],
+        hiddenCols: ["A","AA"]      
     },
     Cat3: {
         url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeBugtsvSMiAlwoZwg_QVXDFN0lMvKAj0bLHLEeyk8KCihgezOPw-1Mh0m7I-48fJvRpKWi9UGwXyc/pub?gid=482846150&single=true&output=csv",
         frozenRows: 2,
+        frozenCols: ["J","K"],
         hiddenCols: ["A","B","C","D","E","F","G","H","I","AA"]
     }
 };
@@ -232,6 +236,8 @@ function applyFilters() {
     });
 
     setTimeout(autoSizeColumns, 0);
+    autoSizeColumns();
+    applyFrozenColumns(document.querySelector("table"));
 }
 
 function autoSizeColumns() {
@@ -287,7 +293,36 @@ function autoSizeColumns() {
 function switchTab(tabName) {
     showTab(tabName);
 }
-    
+
+function applyFrozenColumns(table) {
+
+    const frozenCols = configGlobal.frozenCols || [];
+    if (!frozenCols.length) return;
+
+    const rows = table.querySelectorAll("tr");
+
+    frozenCols.forEach((colLetter, index) => {
+
+        const colIndex = colLetterToIndex(colLetter);
+
+        rows.forEach(row => {
+
+            const visibleCells = Array.from(row.children);
+            const actualCell = visibleCells.find(cell => {
+                return cell.cellIndex === colIndex;
+            });
+
+            if (!actualCell) return;
+
+            actualCell.style.position = "sticky";
+            actualCell.style.left = (index * 120) + "px";  // adjusted after resize
+            actualCell.style.background = "#fff";
+            actualCell.style.zIndex = 5;
+        });
+    });
+}
+
+
 showTab("Cat1");
 
 </script>
