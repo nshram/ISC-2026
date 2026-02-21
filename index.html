@@ -166,9 +166,26 @@ function applyFilters() {
         inputs.forEach(input => {
             const colIndex = input.dataset.col;
             if (!input.value) return;
-            if (!row[colIndex] || !row[colIndex].toLowerCase().includes(input.value.toLowerCase())) {
-                show = false;
-            }
+            const filterText = input.value.trim();
+const cellValue = (row[colIndex] || "").trim();
+
+if (filterText !== "") {
+
+    // If both filter and cell are numeric → exact numeric match
+    if (!isNaN(filterText) && !isNaN(cellValue)) {
+
+        if (Number(cellValue) !== Number(filterText)) {
+            show = false;
+        }
+
+    } else {
+
+        // Text filtering (case insensitive contains)
+        if (!cellValue.toLowerCase().includes(filterText.toLowerCase())) {
+            show = false;
+        }
+    }
+}
         });
 
         if (show) {
