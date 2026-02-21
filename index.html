@@ -221,27 +221,40 @@ function autoSizeColumns() {
     const table = document.querySelector("table");
     if (!table) return;
 
-    table.style.tableLayout = "auto"; // IMPORTANT
-
     const rows = table.querySelectorAll("tr");
     if (rows.length === 0) return;
 
     const colCount = rows[0].children.length;
 
-    // Reset widths first
-    rows.forEach(row => {
-        for (let cell of row.children) {
-            cell.style.width = "";
-        }
-    });
+    // Remove existing colgroup if present
+    let oldColGroup = table.querySelector("colgroup");
+    if (oldColGroup) {
+        oldColGroup.remove();
+    }
 
-    for (let col = 0; col < colCount; col++) {
+    // Create new colgroup
+    const colgroup = document.createElement("colgroup");
+    const cols = [];
+
+    for (let i = 0; i < colCount; i++) {
+        const col = document.createElement("col");
+        colgroup.appendChild(col);
+        cols.push(col);
+    }
+
+    table.insertBefore(colgroup, table.firstChild);
+
+    // Measure max content width per column
+    for (let colIndex = 0; colIndex < colCount; colIndex++) {
 
         let maxWidth = 0;
 
         rows.forEach(row => {
-            const cell = row.children[col];
+            const cell = row.children[colIndex];
             if (!cell) return;
+
+            // Reset width before measuring
+            cell.style.width = "auto";
 
             const width = cell.scrollWidth;
             if (width > maxWidth) {
@@ -249,12 +262,7 @@ function autoSizeColumns() {
             }
         });
 
-        rows.forEach(row => {
-            const cell = row.children[col];
-            if (cell) {
-                cell.style.width = (maxWidth + 20) + "px";
-            }
-        });
+        cols[colIndex].style.width = (maxWidth + 20) + "px";
     }
 }
     
