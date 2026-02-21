@@ -2,12 +2,15 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Sheet Viewer</title>
+<title>ISC-2026 Results</title>
 
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <style>
-body { font-family: Arial; margin: 20px; }
+body {
+    font-family: Arial;
+    margin: 20px;
+}
 
 .table-container {
     overflow: auto;
@@ -18,6 +21,7 @@ body { font-family: Arial; margin: 20px; }
 table {
     border-collapse: collapse;
     width: max-content;
+    table-layout: auto;   /* ← ADD THIS */
 }
 
 th, td {
@@ -25,12 +29,20 @@ th, td {
     padding: 4px 8px;
     white-space: nowrap;
 }
-</style>
-</head>
+
+thead th {
+    background: #f2f2f2;
+}
+
+input {
+    width: 95%;
+    box-sizing: border-box;
+}
+</style></head>
 
 <body>
 
-<h2>Sheet Viewer</h2>
+<h2>ISC-2026 Results</h2>
 <div style="margin-bottom:15px;">
     <button onclick="switchTab('Cat1')">Cat1</button>
     <button onclick="switchTab('Cat2')">Cat2</button>
@@ -209,10 +221,19 @@ function autoSizeColumns() {
     const table = document.querySelector("table");
     if (!table) return;
 
+    table.style.tableLayout = "auto"; // IMPORTANT
+
     const rows = table.querySelectorAll("tr");
     if (rows.length === 0) return;
 
     const colCount = rows[0].children.length;
+
+    // Reset widths first
+    rows.forEach(row => {
+        for (let cell of row.children) {
+            cell.style.width = "";
+        }
+    });
 
     for (let col = 0; col < colCount; col++) {
 
@@ -221,17 +242,22 @@ function autoSizeColumns() {
         rows.forEach(row => {
             const cell = row.children[col];
             if (!cell) return;
-            maxWidth = Math.max(maxWidth, cell.scrollWidth);
+
+            const width = cell.scrollWidth;
+            if (width > maxWidth) {
+                maxWidth = width;
+            }
         });
 
         rows.forEach(row => {
-            if (row.children[col]) {
-                row.children[col].style.width = (maxWidth + 16) + "px";
+            const cell = row.children[col];
+            if (cell) {
+                cell.style.width = (maxWidth + 20) + "px";
             }
         });
     }
 }
-
+    
 function switchTab(tabName) {
     showTab(tabName);
 }
