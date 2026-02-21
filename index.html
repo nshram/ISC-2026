@@ -10,18 +10,19 @@
 body {
     font-family: Arial;
     margin: 20px;
+    overflow: hidden; /* Prevent page scroll */
 }
 
 .table-container {
     overflow: auto;
-    max-height: 80vh;
+    height: 80vh;      /* Scroll inside container */
     border: 1px solid #ccc;
 }
 
 table {
     border-collapse: collapse;
     width: max-content;
-    table-layout: auto;   /* ← ADD THIS */
+    table-layout: auto;
 }
 
 th, td {
@@ -32,13 +33,25 @@ th, td {
 
 thead th {
     background: #f2f2f2;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+}
+
+.filter-row th {
+    position: sticky;
+    top: 32px;  /* height of header row */
+    background: #fff;
+    z-index: 4;
 }
 
 input {
     width: 95%;
     box-sizing: border-box;
 }
-</style></head>
+</style>
+
+</head>
 
 <body>
 
@@ -115,6 +128,7 @@ function renderTable() {
     }
 
     const filterRow = document.createElement("tr");
+    filterRow.className = "filter-row";
     fullData[0].forEach((_, i) => {
         if (hiddenIndexes.includes(i)) return;
         const th = document.createElement("th");
@@ -131,7 +145,11 @@ function renderTable() {
     const tbody = document.createElement("tbody");
     table.appendChild(tbody);
 
-    container.appendChild(table);
+    const wrapper = document.createElement("div");
+    wrapper.className = "table-container";
+    wrapper.appendChild(table);
+    container.appendChild(wrapper);
+    
     applyFilters();
 }
 
