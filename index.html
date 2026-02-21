@@ -35,25 +35,20 @@ th, td {
 
 <script>
 
-/* ---- YOUR SCRIPT STARTS HERE ---- */
-
 const sheets = {
     Cat1: {
         url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeBugtsvSMiAlwoZwg_QVXDFN0lMvKAj0bLHLEeyk8KCihgezOPw-1Mh0m7I-48fJvRpKWi9UGwXyc/pub?gid=1706593238&single=true&output=csv",
         frozenRows: 2,
-        frozenCols: ["A","B"],
         hiddenCols: ["AA"]
     },
     Cat2: {
         url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeBugtsvSMiAlwoZwg_QVXDFN0lMvKAj0bLHLEeyk8KCihgezOPw-1Mh0m7I-48fJvRpKWi9UGwXyc/pub?gid=1880374698&single=true&output=csv",
         frozenRows: 2,
-        frozenCols: ["B","C"],
         hiddenCols: ["A","AA"]
     },
     Cat3: {
         url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQeBugtsvSMiAlwoZwg_QVXDFN0lMvKAj0bLHLEeyk8KCihgezOPw-1Mh0m7I-48fJvRpKWi9UGwXyc/pub?gid=482846150&single=true&output=csv",
         frozenRows: 2,
-        frozenCols: ["J","K"],
         hiddenCols: ["A","B","C","D","E","F","G","H","I","AA"]
     }
 };
@@ -89,7 +84,6 @@ function renderTable() {
     container.innerHTML = "";
 
     const table = document.createElement("table");
-
     const thead = document.createElement("thead");
 
     for (let r = 0; r < configGlobal.frozenRows; r++) {
@@ -104,7 +98,6 @@ function renderTable() {
     }
 
     const filterRow = document.createElement("tr");
-
     fullData[0].forEach((_, i) => {
         if (hiddenIndexes.includes(i)) return;
         const th = document.createElement("th");
@@ -122,24 +115,25 @@ function renderTable() {
     table.appendChild(tbody);
 
     container.appendChild(table);
-
     applyFilters();
 }
 
 function applyFilters() {
+
     const inputs = document.querySelectorAll("thead input");
     const tbody = document.querySelector("tbody");
     tbody.innerHTML = "";
-
-    let visibleRows = [];
-    let counter = 0;
 
     const W = colLetterToIndex("W");
     const X = colLetterToIndex("X");
     const Z = colLetterToIndex("Z");
     const AA = colLetterToIndex("AA");
 
+    let visibleRows = [];
+    let counter = 0;
+
     for (let r = configGlobal.frozenRows; r < fullData.length; r++) {
+
         let row = [...fullData[r]];
         let show = true;
 
@@ -158,7 +152,40 @@ function applyFilters() {
         }
     }
 
-    visibleRows.forEach((row) => {
+    // ---- EXACT TIE LOGIC ----
+    visibleRows.forEach((row, idx) => {
+
+        const rank = row[AA];
+
+        if (!rank) {
+            row[Z] = "";
+            return;
+        }
+
+        const prev = visibleRows.find(r => r[AA] == rank - 1);
+        const next = visibleRows.find(r => r[AA] == rank + 1);
+
+        if (prev && row[W] === prev[W] && row[X] === prev[X]) {
+            row[Z] = prev[Z];
+            return;
+        }
+
+        if (next && row[W] === next[W] && row[X] === next[X]) {
+
+            const sameGroup = visibleRows.filter(r => 
+                r[W] === row[W] && r[X] === row[X]
+            );
+
+            const maxRank = Math.max(...sameGroup.map(r => r[AA]));
+            row[Z] = rank + "-" + maxRank;
+            return;
+        }
+
+        row[Z] = rank;
+    });
+
+    // ---- RENDER ----
+    visibleRows.forEach(row => {
         const tr = document.createElement("tr");
         row.forEach((cell, i) => {
             if (hiddenIndexes.includes(i)) return;
@@ -169,18 +196,23 @@ function applyFilters() {
         tbody.appendChild(tr);
     });
 
-    autoSizeColumns();
+    setTimeout(autoSizeColumns, 0);
 }
 
 function autoSizeColumns() {
+
     const table = document.querySelector("table");
     if (!table) return;
 
     const rows = table.querySelectorAll("tr");
+    if (rows.length === 0) return;
+
     const colCount = rows[0].children.length;
 
     for (let col = 0; col < colCount; col++) {
+
         let maxWidth = 0;
+
         rows.forEach(row => {
             const cell = row.children[col];
             if (!cell) return;
