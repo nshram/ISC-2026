@@ -244,9 +244,11 @@ if (filterText !== "") {
     const table = document.querySelector("table");
     if (!table) return;
 
+    requestAnimationFrame(() => {
     autoSizeColumns();
     applyFrozenRows(table);
     applyFrozenColumns(table);
+});
 
 }, 0);
     
