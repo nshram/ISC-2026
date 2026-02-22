@@ -330,7 +330,7 @@ function applyFrozenColumns(table) {
             if (frozenSoFar < frozenCount) {
                 cell.style.position = "sticky";
                 cell.style.left = leftOffset + "px";
-                cell.style.zIndex = 5;
+                cell.style.zIndex = 20;
                 cell.style.background = "white";
                 
                 // Add shadow to last frozen column
@@ -338,7 +338,7 @@ function applyFrozenColumns(table) {
                     cell.style.boxShadow = "2px 0 5px rgba(0,0,0,0.1)";
                 } else {
                     cell.style.boxShadow = "";
-            }
+                }
 
                 leftOffset += cell.offsetWidth;
                 frozenSoFar++;
