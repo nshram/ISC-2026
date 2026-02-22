@@ -331,9 +331,13 @@ function applyFrozenColumns(table) {
             if (frozenSoFar < frozenCount) {
                 cell.style.position = "sticky";
                 cell.style.left = leftOffset + "px";
-                cell.style.zIndex = 20;
                 cell.style.background = "white";
-                
+                cell.style.zIndex = 20;
+
+                if (cell.style.top) {
+                    cell.style.zIndex = 50;   // intersection cell
+                }              
+               
                 // Add shadow to last frozen column
                 if (frozenSoFar === frozenCount - 1) {
                     cell.style.boxShadow = "2px 0 5px rgba(0,0,0,0.1)";
@@ -365,7 +369,7 @@ function applyFrozenRows(table) {
             cell.style.position = "sticky";
             cell.style.top = cumulativeTop + "px";
             cell.style.background = "white";
-            cell.style.zIndex = 4;
+            cell.style.zIndex = 40;
         });
 
         cumulativeTop += height;
