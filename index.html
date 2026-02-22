@@ -306,55 +306,40 @@ function switchTab(tabName) {
 }
 
 function applyFrozenColumns(table) {
+    const frozenCount = 2;
 
-    const frozenCols = configGlobal.frozenCols || [];
-    if (!frozenCols.length) return;
+    const rows = table.querySelectorAll("tr");
 
-    const rows = Array.from(table.querySelectorAll("tr"));
+    rows.forEach(row => {
 
-    // Calculate cumulative column widths
-    const colWidths = [];
-    const firstRowCells = rows[0].children;
-
-    for (let i = 0; i < firstRowCells.length; i++) {
-        colWidths.push(firstRowCells[i].offsetWidth);
-    }
-
-    frozenCols.forEach((colLetter) => {
-
-        const colIndex = colLetterToIndex(colLetter);
+        // Step 1: clear previous sticky styles
+        Array.from(row.children).forEach(cell => {
+            cell.style.position = "";
+            cell.style.left = "";
+            cell.style.zIndex = "";
+        });
 
         let leftOffset = 0;
-        for (let i = 0; i < colIndex; i++) {
-            leftOffset += colWidths[i];
+        let frozenSoFar = 0;
+
+        for (let cell of row.children) {
+
+            // Skip hidden cells
+            if (getComputedStyle(cell).display === "none") continue;
+
+            if (frozenSoFar < frozenCount) {
+                cell.style.position = "sticky";
+                cell.style.left = leftOffset + "px";
+                cell.style.zIndex = 5;
+                cell.style.background = "white";
+
+                leftOffset += cell.offsetWidth;
+                frozenSoFar++;
+            }
         }
-
-        rows.forEach((row, rowIndex) => {
-
-    const cell = row.children[colIndex];
-    if (!cell) return;
-
-    cell.style.position = "sticky";
-    cell.style.left = leftOffset + "px";
-    cell.style.background = "white";
-
-    const sheetFrozenCount = configGlobal.frozenRows || 0;
-    const filterRow = table.querySelector(".filter-row");
-    const filterIndex = rows.indexOf(filterRow);
-
-    // If cell is in frozen sheet row OR filter row
-    if (rowIndex < sheetFrozenCount || rowIndex === filterIndex) {
-
-        // Preserve top offset already applied by applyFrozenRows
-        cell.style.zIndex = 7;
-
-    } else {
-        cell.style.zIndex = 5;
-    }
-});
     });
 }
-
+    
 function applyFrozenRows(table) {
 
     const sheetFrozenCount = configGlobal.frozenRows || 0;
