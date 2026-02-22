@@ -315,7 +315,6 @@ function applyFrozenColumns(table) {
 
         // Step 1: clear previous sticky styles
         Array.from(row.children).forEach(cell => {
-            cell.style.position = "";
             cell.style.left = "";
             cell.style.zIndex = "";
         });
