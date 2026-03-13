@@ -90,22 +90,21 @@ function colLetterToIndex(letter) {
 
 function showTab(tab) {
     const container = document.getElementById("tableArea");
-    container.innerHTML = "<div class='loading'>Please wait...</div>";
+
+    let loadingTimer = setTimeout(() => {
+        container.innerHTML = "<div class='loading'>Please wait...</div>";
+    }, 300);
 
     configGlobal = sheets[tab];
     hiddenIndexes = configGlobal.hiddenCols.map(c => colLetterToIndex(c));
 
-    // Allow browser to paint the message first
-    requestAnimationFrame(() => {
-
-        Papa.parse(configGlobal.url, {
-            download: true,
-            complete: function(results) {
-                fullData = results.data;
-                renderTable();
-            }
-        });
-
+    Papa.parse(configGlobal.url, {
+        download: true,
+        complete: function(results) {
+            clearTimeout(loadingTimer);
+            fullData = results.data;
+            renderTable();
+        }
     });
 }
 
