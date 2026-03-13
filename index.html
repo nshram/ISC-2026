@@ -314,16 +314,7 @@ function autoSizeColumns() {
 }
     
 function switchTab(tabName) {
-    showTab(tabName);
-
-    setTimeout(() => {
-        const table = document.querySelector("table");
-        if (!table) return;
-
-        autoSizeColumns();
-        applyFrozenRows(table);
-        applyFrozenColumns(table);
-    }, 100);    
+    showTab(tabName);    
 }
 
 function applyFrozenColumns(table) {
