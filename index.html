@@ -89,6 +89,9 @@ function colLetterToIndex(letter) {
 }
 
 function showTab(tab) {
+    const container = document.getElementById("tableArea");
+    container.innerHTML = "<div class='loading'>Please wait…</div>";
+    
     configGlobal = sheets[tab];
     hiddenIndexes = configGlobal.hiddenCols.map(c => colLetterToIndex(c));
 
