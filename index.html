@@ -78,6 +78,7 @@ const sheets = {
 let fullData = [];
 let configGlobal;
 let hiddenIndexes = [];
+let sheetCache = {};
 
 function colLetterToIndex(letter) {
     let result = 0;
@@ -91,18 +92,28 @@ function colLetterToIndex(letter) {
 function showTab(tab) {
     const container = document.getElementById("tableArea");
 
+    configGlobal = sheets[tab];
+    hiddenIndexes = configGlobal.hiddenCols.map(c => colLetterToIndex(c));
+
+    // If we already loaded this tab before, use cached data
+    if (sheetCache[tab]) {
+        fullData = sheetCache[tab];
+        renderTable();
+        return;
+    }
+
     let loadingTimer = setTimeout(() => {
         container.innerHTML = "<div class='loading'>Please wait...</div>";
     }, 300);
-
-    configGlobal = sheets[tab];
-    hiddenIndexes = configGlobal.hiddenCols.map(c => colLetterToIndex(c));
 
     Papa.parse(configGlobal.url, {
         download: true,
         complete: function(results) {
             clearTimeout(loadingTimer);
+
             fullData = results.data;
+            sheetCache[tab] = results.data;   // store in cache
+
             renderTable();
         }
     });
